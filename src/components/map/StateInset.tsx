@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
+import { MapContainer, GeoJSON } from "react-leaflet";
 import { ImportedGeoJSON, PoliticalCategory } from "../../types/map";
 import { getPoliticalColor } from "../../utils/mapUtils";
 
@@ -8,6 +8,7 @@ interface StateInsetProps {
   zoom: number;
   statesData: ImportedGeoJSON;
   statePolitics: Record<string, PoliticalCategory>;
+  simplified?: boolean;
 }
 
 export const StateInset = ({
@@ -16,6 +17,7 @@ export const StateInset = ({
   zoom,
   statesData,
   statePolitics,
+  simplified = false,
 }: StateInsetProps) => {
   const stateData = statesData.features.find(
     (f) => f.properties.name === stateName
@@ -24,7 +26,18 @@ export const StateInset = ({
   if (!stateData) return null;
 
   return (
-    <div className="w-48 h-36 bg-white rounded-lg shadow-lg overflow-hidden">
+    <div
+      className={`relative bg-white rounded-lg shadow-lg overflow-hidden ${
+        simplified ? "w-48 h-36" : "w-48 h-48"
+      }`}
+    >
+      {/* Nadpis přímo nad mapou uvnitř boxu, pevně pozicovaný */}
+      <div
+        className="absolute top-0 w-full text-center text-xs font-semibold text-gray-600 bg-white bg-opacity-30 p-1 z-[1000]"
+        style={{ pointerEvents: "none" }}
+      >
+        {stateName}
+      </div>
       <MapContainer
         center={center}
         zoom={zoom}
@@ -32,24 +45,18 @@ export const StateInset = ({
         zoomControl={false}
         dragging={false}
         scrollWheelZoom={false}
+        attributionControl={false}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          noWrap={true}
-        />
         <GeoJSON
           data={stateData}
           style={{
             fillColor: getPoliticalColor(stateName, statePolitics),
-            fillOpacity: 0.7,
+            fillOpacity: 0.8,
             weight: 1,
-            color: "#fff",
+            color: "#FF9913",
           }}
         />
       </MapContainer>
-      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-1 text-xs text-center">
-        {stateName}
-      </div>
     </div>
   );
 };

@@ -26,4 +26,4 @@ export const USA_BOUNDS = new LatLngBounds(
 );
 
 export const MIN_ZOOM = 4;
-export const MAX_ZOOM = 6;
+export const MAX_ZOOM = 7;

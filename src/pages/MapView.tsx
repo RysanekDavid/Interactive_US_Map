@@ -1,14 +1,11 @@
 import { useState, useMemo } from "react";
 import { MapContainer, TileLayer, GeoJSON, ZoomControl } from "react-leaflet";
-import { TooltipOptions } from "leaflet";
 import usStatesDataRaw from "@/data/us-states.json";
-
+import { StateInset } from "../components/map/StateInset";
 import { MainLayout } from "../components/layout/MainLayout";
 import { MapControls } from "../components/map/MapControls";
-import { StateInset } from "../components/map/StateInset";
 import { StateInfo } from "../components/map/StateInfo";
 import { MapLegend } from "../components/map/MapLegend";
-
 import {
   StateFeature,
   ImportedGeoJSON,
@@ -59,27 +56,24 @@ const MapView = () => {
       const abbr =
         stateAbbreviations[feature.properties.name] || feature.properties.name;
 
-      const tooltipOptions: TooltipOptions = {
+      layer.bindTooltip(abbr, {
         permanent: true,
         direction: "center",
         className: "state-label",
         offset: [0, 0],
-      };
+      });
 
-      layer.bindTooltip(abbr, tooltipOptions);
+      layer.on({
+        mouseover: () => setHoveredState(feature),
+        mouseout: () => setHoveredState(null),
+        click: () => setSelectedState(feature),
+      });
     }
-
-    layer.on({
-      mouseover: () => setHoveredState(feature),
-      mouseout: () => setHoveredState(null),
-      click: () => setSelectedState(feature),
-    });
   };
 
   return (
     <MainLayout>
       <div className="flex-1 flex gap-6">
-        {/* Map Container */}
         <div className="flex-grow relative rounded-lg overflow-hidden shadow-lg">
           <MapContainer
             center={[39.8283, -98.5795]}
@@ -105,21 +99,39 @@ const MapView = () => {
               onEachFeature={onEachFeature}
             />
 
-            {/* Inset maps */}
-            <div className="absolute left-4 bottom-4 z-[1000] space-y-2">
+            {/* Inset for Alaska */}
+            <div className="absolute bottom-4 left-4">
               <StateInset
                 stateName="Alaska"
-                center={[64.2008, -149.4937]}
-                zoom={3}
+                center={[64.2008, -145.4937]}
+                zoom={2}
                 statesData={usStatesData}
                 statePolitics={statePolitics}
+                simplified={true}
               />
+            </div>
+
+            {/* Inset for Hawaii */}
+            <div className="absolute bottom-40 left-4">
               <StateInset
                 stateName="Hawaii"
-                center={[20.7984, -156.3319]}
-                zoom={6}
+                center={[20.7967, -157.3319]}
+                zoom={5}
                 statesData={usStatesData}
                 statePolitics={statePolitics}
+                simplified={true}
+              />
+            </div>
+
+            {/* Inset for Puerto Rico */}
+            <div className="absolute bottom-72 left-4">
+              <StateInset
+                stateName="Puerto Rico"
+                center={[18.2208, -66.5901]}
+                zoom={7}
+                statesData={usStatesData}
+                statePolitics={statePolitics}
+                simplified={true}
               />
             </div>
 
@@ -128,7 +140,6 @@ const MapView = () => {
           </MapContainer>
         </div>
 
-        {/* Side Panel */}
         <div>
           <StateInfo
             selectedState={selectedState}
