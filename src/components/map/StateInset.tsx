@@ -1,5 +1,9 @@
 import { MapContainer, GeoJSON } from "react-leaflet";
-import { ImportedGeoJSON, PoliticalCategory } from "../../types/map";
+import {
+  ImportedGeoJSON,
+  PoliticalCategory,
+  StateFeature,
+} from "../../types/map";
 import { getPoliticalColor } from "../../utils/mapUtils";
 
 interface StateInsetProps {
@@ -9,6 +13,7 @@ interface StateInsetProps {
   statesData: ImportedGeoJSON;
   statePolitics: Record<string, PoliticalCategory>;
   simplified?: boolean;
+  onStateSelect?: (state: StateFeature) => void; // Přidáme callback pro výběr státu
 }
 
 export const StateInset = ({
@@ -18,20 +23,27 @@ export const StateInset = ({
   statesData,
   statePolitics,
   simplified = false,
+  onStateSelect,
 }: StateInsetProps) => {
   const stateData = statesData.features.find(
     (f) => f.properties.name === stateName
-  );
+  ) as StateFeature;
 
   if (!stateData) return null;
 
+  const handleClick = () => {
+    if (onStateSelect) {
+      onStateSelect(stateData);
+    }
+  };
+
   return (
     <div
-      className={`relative bg-white rounded-lg shadow-lg overflow-hidden ${
+      className={`relative bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer ${
         simplified ? "w-48 h-36" : "w-48 h-48"
       }`}
+      onClick={handleClick} // Přidáme onClick handler na celý div
     >
-      {/* Nadpis přímo nad mapou uvnitř boxu, pevně pozicovaný */}
       <div
         className="absolute top-0 w-full text-center text-xs font-semibold text-gray-600 bg-white bg-opacity-30 p-1 z-[1000]"
         style={{ pointerEvents: "none" }}
@@ -43,15 +55,16 @@ export const StateInset = ({
         zoom={zoom}
         className="w-full h-full"
         zoomControl={false}
-        dragging={false}
-        scrollWheelZoom={false}
+        dragging={true}
+        doubleClickZoom={false}
+        scrollWheelZoom={true}
         attributionControl={false}
       >
         <GeoJSON
           data={stateData}
           style={{
             fillColor: getPoliticalColor(stateName, statePolitics),
-            fillOpacity: 0.8,
+            fillOpacity: 0.9,
             weight: 1,
             color: "#FF9913",
           }}
