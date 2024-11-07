@@ -2,6 +2,7 @@ import usaLogo from "../../../public/AppBarLogo/usa.svg";
 
 interface HeaderProps {
   title: string;
+  subtitle?: string;
 }
 
 export const Header = ({ title }: HeaderProps) => {

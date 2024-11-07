@@ -33,7 +33,7 @@ export const StateInfo = ({ selectedState, statePolitics }: StateInfoProps) => {
   };
 
   return (
-    <div className="w-96 bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="w-full lg:w-96 bg-white rounded-lg shadow-lg overflow-hidden">
       {selectedState ? (
         <>
           {/* Hlavička s symbolem státu */}

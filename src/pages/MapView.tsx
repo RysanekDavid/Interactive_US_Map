@@ -22,13 +22,12 @@ import {
 import { getPoliticalColor } from "../utils/mapUtils";
 import { stateAbbreviations, statePolitics } from "../constants/mapData";
 import * as L from "leaflet";
-// Click handler component to detect clicks outside states
+
 const MapClickHandler = ({ onMapClick }: { onMapClick: () => void }) => {
   const map = useMap();
 
   useEffect(() => {
     const handleClick = (e: L.LeafletMouseEvent) => {
-      // Only trigger if the click wasn't on a state (prevented default)
       if (!e.originalEvent.defaultPrevented) {
         onMapClick();
       }
@@ -43,7 +42,6 @@ const MapClickHandler = ({ onMapClick }: { onMapClick: () => void }) => {
   return null;
 };
 
-// Existing ZoomListener component remains the same
 const ZoomListener = ({
   onZoomChange,
 }: {
@@ -74,7 +72,6 @@ const MapView = () => {
 
   const shouldShowInsets = currentZoom <= 5;
 
-  // Handler for clicks outside states
   const handleMapClick = () => {
     setSelectedState(null);
   };
@@ -124,7 +121,6 @@ const MapView = () => {
         mouseover: () => setHoveredState(feature),
         mouseout: () => setHoveredState(null),
         click: (e) => {
-          // Prevent the click from bubbling to the map
           L.DomEvent.stopPropagation(e);
           setSelectedState(feature);
         },
@@ -134,8 +130,10 @@ const MapView = () => {
 
   return (
     <MainLayout>
-      <div className="flex-1 flex gap-6">
-        <div className="flex-grow relative rounded-lg overflow-hidden shadow-lg">
+      {/* Změna flex na grid pro lepší responsivitu */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+        {/* Mapa */}
+        <div className="lg:col-span-8 h-[60vh] lg:h-[calc(100vh-12rem)] relative rounded-lg overflow-hidden shadow-lg">
           <MapContainer
             center={[39.8283, -98.5795]}
             zoom={3}
@@ -164,8 +162,8 @@ const MapView = () => {
             />
 
             {shouldShowInsets && (
-              <>
-                <div className="absolute bottom-4 left-4 transition-opacity duration-300">
+              <div className="absolute bottom-4 left-4 flex flex-col gap-2 lg:gap-4">
+                <div className="w-32 lg:w-48 transition-opacity duration-300">
                   <StateInset
                     stateName="Alaska"
                     center={[67.2008, -145.4937]}
@@ -177,7 +175,7 @@ const MapView = () => {
                   />
                 </div>
 
-                <div className="absolute bottom-40 left-4 transition-opacity duration-300">
+                <div className="w-32 lg:w-48 transition-opacity duration-300">
                   <StateInset
                     stateName="Hawaii"
                     center={[20.7967, -157.3319]}
@@ -189,7 +187,7 @@ const MapView = () => {
                   />
                 </div>
 
-                <div className="absolute bottom-72 left-4 transition-opacity duration-300">
+                <div className="w-32 lg:w-48 transition-opacity duration-300">
                   <StateInset
                     stateName="Puerto Rico"
                     center={[18.2208, -66.3901]}
@@ -200,7 +198,7 @@ const MapView = () => {
                     onStateSelect={setSelectedState}
                   />
                 </div>
-              </>
+              </div>
             )}
 
             <MapControls />
@@ -208,7 +206,8 @@ const MapView = () => {
           </MapContainer>
         </div>
 
-        <div>
+        {/* Sidebar */}
+        <div className="lg:col-span-4 space-y-4">
           <StateInfo
             selectedState={selectedState}
             statePolitics={statePolitics}
