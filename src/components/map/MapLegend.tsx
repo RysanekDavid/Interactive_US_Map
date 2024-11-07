@@ -2,9 +2,9 @@ import { legendItems } from "../../utils/mapUtils";
 
 export const MapLegend = () => {
   return (
-    <div className="mt-8">
-      <h3 className="font-semibold mb-3 text-gray-800">Legend</h3>
-      <div className="space-y-2">
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h3 className="font-semibold mb-4 text-gray-800">Legend</h3>
+      <div className="space-y-3">
         {legendItems.map((item, i) => (
           <div key={i} className="flex items-center gap-3">
             <div
