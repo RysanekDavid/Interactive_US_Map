@@ -11,7 +11,8 @@ export type PoliticalCategory =
   | "lean-dem"
   | "swing"
   | "lean-rep"
-  | "solid-rep";
+  | "solid-rep"
+  | "independent-territory";
 
 export interface ImportedGeoJSON extends FeatureCollection {
   type: "FeatureCollection";

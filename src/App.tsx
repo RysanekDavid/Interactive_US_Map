@@ -1,12 +1,17 @@
+// src/App.tsx
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MapView from "./pages/MapView";
-import "leaflet/dist/leaflet.css";
+import CountryDetail from "./pages/CountryDetail";
 
-function App() {
+const App = () => {
   return (
-    <div className="w-screen h-screen overflow-hidden ">
-      <MapView />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MapView />} />
+        <Route path="/state/:name" element={<CountryDetail />} />
+      </Routes>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

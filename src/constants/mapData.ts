@@ -39,6 +39,7 @@ export const stateAbbreviations: { [key: string]: string } = {
   Oklahoma: "OK",
   Oregon: "OR",
   Pennsylvania: "PA",
+  "Puerto Rico": "PR",
   "Rhode Island": "RI",
   "South Carolina": "SC",
   "South Dakota": "SD",
@@ -113,6 +114,9 @@ export const statePolitics: { [key: string]: PoliticalCategory } = {
   "West Virginia": "solid-rep",
   "South Carolina": "solid-rep",
   Alaska: "solid-rep",
+
+  // Independent territory
+  "Puerto Rico": "independent-territory",
 };
 
 // Electoral votes for each state (2024)
@@ -198,5 +202,4 @@ export const stateGovernors: { [key: string]: PartyAffiliation } = {
   Georgia: "R",
   Michigan: "D",
   "North Carolina": "D",
-  // ... další státy můžeme přidat podle potřeby
 };
