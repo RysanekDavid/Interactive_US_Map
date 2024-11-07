@@ -1,50 +1,35 @@
-# React + TypeScript + Vite
+# Interactive US Map - US Political History Visualization
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive tool for exploring and documenting the political history and current political landscape of US states. This application features dynamic color-coding based on political affiliations and allows for continuous updates of state-specific information.
 
-Currently, two official plugins are available:
+## Core Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Interactive Political Map
 
-## Expanding the ESLint configuration
+- **Dynamic color-coding system** representing political affiliations:
+  - **Blue**: Democratic-leaning states
+  - **Red**: Republican-leaning states
+  - **Yellow**: Swing states
+  - **Gray**: Independent territories
+- **Quick state information preview on click**, displaying:
+  - State capital
+  - Current population
+  - Number of electoral votes
+  - Governor information
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### Detailed State Information
 
-- Configure the top-level `parserOptions` property like this:
+- **Individual state pages** with editable content sections for:
+  - Historical political data
+  - Economic statistics
+  - Cultural insights
+- **Rich text editor** for easy content updates
+- **Real-time preview** of changes for an immediate overview
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## Technical Stack
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+- **React**: Core library for building the application
+- **React Router**: For seamless navigation between pages
+- **TipTap**: A flexible rich-text editor for managing state-specific content
+- **Leaflet**: Interactive map visualization
+- **Tailwind CSS**: Styling for a responsive and modern UI
