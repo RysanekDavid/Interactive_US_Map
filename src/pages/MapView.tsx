@@ -1,3 +1,4 @@
+// src/pages/MapView.tsx
 import { useState, useMemo, useEffect } from "react";
 import {
   MapContainer,
@@ -130,10 +131,9 @@ const MapView = () => {
 
   return (
     <MainLayout>
-      {/* Změna flex na grid pro lepší responsivitu */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
         {/* Mapa */}
-        <div className="lg:col-span-8 h-[60vh] lg:h-[calc(100vh-12rem)] relative rounded-lg overflow-hidden shadow-lg">
+        <div className="lg:col-span-9 h-[calc(100vh-10rem)] relative rounded-lg overflow-hidden shadow-lg">
           <MapContainer
             center={[39.8283, -98.5795]}
             zoom={3}
@@ -162,8 +162,8 @@ const MapView = () => {
             />
 
             {shouldShowInsets && (
-              <div className="absolute bottom-4 left-4 flex flex-col gap-2 lg:gap-4">
-                <div className="w-32 lg:w-48 transition-opacity duration-300">
+              <div className="absolute bottom-4 left-4 hidden lg:flex flex-col gap-2 lg:gap-3">
+                <div className="w-36 transition-opacity duration-300">
                   <StateInset
                     stateName="Alaska"
                     center={[67.2008, -145.4937]}
@@ -175,7 +175,7 @@ const MapView = () => {
                   />
                 </div>
 
-                <div className="w-32 lg:w-48 transition-opacity duration-300">
+                <div className="w-36 transition-opacity duration-300">
                   <StateInset
                     stateName="Hawaii"
                     center={[20.7967, -157.3319]}
@@ -187,7 +187,7 @@ const MapView = () => {
                   />
                 </div>
 
-                <div className="w-32 lg:w-48 transition-opacity duration-300">
+                <div className="w-36 transition-opacity duration-300">
                   <StateInset
                     stateName="Puerto Rico"
                     center={[18.2208, -66.3901]}
@@ -207,7 +207,7 @@ const MapView = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="lg:col-span-3 flex flex-col gap-4">
           <StateInfo
             selectedState={selectedState}
             statePolitics={statePolitics}

@@ -22,7 +22,7 @@ export interface ImportedGeoJSON extends FeatureCollection {
 export type StateFeature = Feature<Geometry, StateProperties>;
 
 export const USA_BOUNDS = new LatLngBounds(
-  [100, -200], // Jihozápadní bod - posunutý více na jih
+  [75, -200], // Jihozápadní bod - posunutý více na jih
   [-30, 0] // Severovýchodní bod - zahrnuje celou oblast
 );
 

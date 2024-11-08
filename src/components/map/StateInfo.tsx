@@ -1,3 +1,4 @@
+// src/components/map/StateInfo.tsx
 import { ArrowRight, MapPin, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { StateFeature, PoliticalCategory } from "../../types/map";
@@ -9,6 +10,13 @@ interface StateInfoProps {
   selectedState: StateFeature | null;
   statePolitics: Record<string, PoliticalCategory>;
 }
+
+const getStateFlag = (stateName: string) => {
+  return `/StateFlags/Flag_of_${stateName
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join("_")}.svg`;
+};
 
 export const StateInfo = ({ selectedState, statePolitics }: StateInfoProps) => {
   const navigate = useNavigate();
@@ -36,14 +44,32 @@ export const StateInfo = ({ selectedState, statePolitics }: StateInfoProps) => {
     <div className="w-full lg:w-96 bg-white rounded-lg shadow-lg overflow-hidden">
       {selectedState ? (
         <>
-          {/* Hlavička s symbolem státu */}
-          <div className="relative h-32 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800 p-6">
+          {/* Hlavička s vlajkou státu */}
+          <div className="relative h-30 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800 p-6">
             <div className="absolute inset-0 bg-black/5" />
             <div className="relative flex items-center gap-4">
-              <div className="w-20 h-20 bg-white rounded-lg shadow-lg flex items-center justify-center">
-                <span className="text-3xl font-bold text-slate-700">
-                  {stateAbbreviations[selectedState.properties.name] || "??"}
-                </span>
+              <div className="w-24 h-22 bg-white rounded-lg shadow-lg flex items-center justify-center overflow-hidden p-2">
+                <img
+                  src={getStateFlag(selectedState.properties.name)}
+                  alt={`${selectedState.properties.name} flag`}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    console.log(
+                      "Failed to load flag:",
+                      getStateFlag(selectedState.properties.name)
+                    ); // Pro debug
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = "none";
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+        <span class="text-3xl font-bold text-slate-700">
+          ${stateAbbreviations[selectedState.properties.name] || "??"}
+        </span>
+      `;
+                    }
+                  }}
+                />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-white">

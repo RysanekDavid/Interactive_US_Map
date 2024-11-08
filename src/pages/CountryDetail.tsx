@@ -1,16 +1,23 @@
-// src/pages/CountryDetail.tsx
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { stateAbbreviations, statePolitics } from "../constants/mapData";
 import { stateData } from "../constants/stateData";
 import { StateEditor } from "../components/editor/StateEditor";
+import { getPoliticalColor } from "../utils/mapUtils";
 
 interface Section {
   id: string;
   title: string;
   content: string;
 }
+
+const getStateFlag = (stateName: string) => {
+  return `/StateFlags/Flag_of_${stateName
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join("_")}.svg`;
+};
 
 const CountryDetail = () => {
   const { name } = useParams<{ name: string }>();
@@ -98,7 +105,6 @@ const CountryDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        {/* Navigace zpět */}
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
@@ -113,16 +119,48 @@ const CountryDetail = () => {
             <div className="absolute inset-0 bg-black/5" />
             <div className="relative h-full flex items-center px-8">
               <div className="flex items-center gap-6">
-                <div className="w-24 h-24 bg-white rounded-xl shadow-lg flex items-center justify-center">
-                  <span className="text-4xl font-bold text-slate-700">
-                    {countryAbbr}
-                  </span>
+                <div className="w-32 h-32 bg-white rounded-xl shadow-lg flex items-center justify-center overflow-hidden p-2">
+                  <img
+                    src={getStateFlag(countryName)}
+                    alt={`${countryName} flag`}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      console.log(
+                        "Failed to load flag:",
+                        getStateFlag(countryName)
+                      );
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `
+                          <span class="text-5xl font-bold text-slate-700">
+                            ${countryAbbr}
+                          </span>
+                        `;
+                      }
+                    }}
+                  />
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold text-white mb-2">
                     {countryName}
                   </h1>
-                  <div className="inline-block px-4 py-2 rounded-full text-sm font-semibold bg-white/10 text-white">
+                  <div
+                    className="inline-block px-4 py-2 rounded-full text-sm font-semibold"
+                    style={{
+                      backgroundColor: getPoliticalColor(
+                        countryName,
+                        statePolitics
+                      ),
+                      color:
+                        ["solid-dem", "solid-rep"].includes(
+                          statePolitics[countryName]
+                        ) || politics === "independent-territory"
+                          ? "white"
+                          : "black",
+                    }}
+                  >
                     {politics === "independent-territory"
                       ? "Independent Territory"
                       : politics
