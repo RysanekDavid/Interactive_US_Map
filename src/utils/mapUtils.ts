@@ -1,19 +1,9 @@
-// V types/map.ts - přidat novou kategorii
-export type PoliticalCategory =
-  | "solid-dem"
-  | "lean-dem"
-  | "swing"
-  | "lean-rep"
-  | "solid-rep"
-  | "independent-territory";
+import { PoliticalCategory } from "../types/map";
 
-// V mapUtils.ts - upravit funkci pro barvy
 export const getPoliticalColor = (
-  stateName: string,
-  statePolitics: Record<string, PoliticalCategory>
+  political_status: PoliticalCategory
 ): string => {
-  const category = statePolitics[stateName];
-  switch (category) {
+  switch (political_status) {
     case "solid-dem":
       return "#0000FF";
     case "lean-dem":
@@ -25,22 +15,16 @@ export const getPoliticalColor = (
     case "solid-rep":
       return "#FF0000";
     case "independent-territory":
-      return "#4A5568"; // tmavě šedá
+      return "#4A5568";
     default:
       return "#CCCCCC";
   }
 };
 
 export const legendItems = [
-  { label: "Solid Democratic", color: "#0000FF" },
-  { label: "Lean Democratic", color: "#99CCFF" },
-  { label: "Swing State", color: "#FFD700" },
-  { label: "Lean Republican", color: "#FFB6C1" },
-  { label: "Solid Republican", color: "#FF0000" },
-  { label: "Independent Territory", color: "#4A5568" },
+  { label: "Silně demokratický", color: "#0000FF" }, // Solid Democratic
+  { label: "Mírně demokratický", color: "#99CCFF" }, // Lean Democratic
+  { label: "Kolísavý stát", color: "#FFD700" }, // Swing State
+  { label: "Mírně republikánský", color: "#FFB6C1" }, // Lean Republican
+  { label: "Silně republikánský", color: "#FF0000" }, // Solid Republican
 ];
-
-// V mapData.ts - aktualizovat data pro Puerto Rico
-export const statePolitics: { [key: string]: PoliticalCategory } = {
-  "Puerto Rico": "independent-territory",
-};

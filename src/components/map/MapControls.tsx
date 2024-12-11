@@ -1,3 +1,5 @@
+// src/components/map/MapControls.tsx
+
 import { useCallback } from "react";
 import { useMap } from "react-leaflet";
 import { Maximize } from "lucide-react";

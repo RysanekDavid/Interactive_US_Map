@@ -24,7 +24,6 @@ export const Toolbar = ({ editor }: ToolbarProps) => {
   return (
     <div className="border-b border-gray-200 bg-white p-4 sticky top-0 z-10">
       <div className="flex flex-wrap gap-2">
-        {/* Text Style */}
         <div className="flex items-center gap-1 border-r pr-2">
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}

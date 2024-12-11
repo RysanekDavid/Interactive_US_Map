@@ -8,7 +8,7 @@ interface MainLayoutProps {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <div className="min-h-screen bg-slate-300">
-      <Header title="US Political Map" />
+      <Header title="Strategické Mapy USA" />
       <main className="pt-14">
         {" "}
         <div className="container mx-auto px-4 py-6">

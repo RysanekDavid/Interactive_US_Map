@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Plus, X } from "lucide-react";
-import { stateAbbreviations, statePolitics } from "../constants/mapData";
-import { stateData } from "../constants/stateData";
-import { StateEditor } from "../components/editor/StateEditor";
 import { getPoliticalColor } from "../utils/mapUtils";
+import { PoliticalCategory } from "../types/map";
+import { StateEditor } from "../components/editor/StateEditor";
 
 interface Section {
   id: string;
@@ -12,95 +11,241 @@ interface Section {
   content: string;
 }
 
-const getStateFlag = (stateName: string) => {
-  return `/StateFlags/Flag_of_${stateName
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join("_")}.svg`;
+interface StateData {
+  name: string;
+  abbreviation: string;
+  political_status: PoliticalCategory;
+  population: number;
+  area: number;
+  gdp: number;
+  gdp_per_capita: number;
+  governor_name: string;
+  governor_party: string;
+  electoral_votes: number;
+  gdp_rank?: number; // pro zobrazení ranku HDP
+}
+
+interface StateDetailData {
+  lastUpdated: string;
+  states: {
+    [key: string]: {
+      sections: Section[];
+    };
+  };
+}
+
+interface StatesData {
+  lastUpdated: string;
+  states: StateData[];
+}
+
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat("en-US").format(value);
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+    notation: "compact",
+  }).format(value);
+
+const translateParty = (party: string) => {
+  switch (party.toLowerCase()) {
+    case "democrat":
+      return "demokrat";
+    case "republican":
+      return "republikán";
+    default:
+      return party;
+  }
+};
+
+const translatePoliticalStatus = (status: PoliticalCategory): string => {
+  switch (status) {
+    case "solid-dem":
+      return "Silně demokratický";
+    case "lean-dem":
+      return "Mírně demokratický";
+    case "swing":
+      return "Swing";
+    case "lean-rep":
+      return "Mírně republikánský";
+    case "solid-rep":
+      return "Silně republikánský";
+    case "independent-territory":
+      return "Nezávislé teritorium";
+    default:
+      return status;
+  }
 };
 
 const CountryDetail = () => {
   const { name } = useParams<{ name: string }>();
-
-  const countryName = Object.keys(stateData).find(
-    (state) => state.toLowerCase().replace(/\s+/g, "-") === name
-  );
-
-  const defaultSections = (name: string) => [
-    {
-      id: "1",
-      title: "History",
-      content: `<h1>History of ${name}</h1><p>Add historical information here...</p>`,
-    },
-    {
-      id: "2",
-      title: "Economy",
-      content: `<h1>Economy of ${name}</h1><p>Add economic information here...</p>`,
-    },
-    {
-      id: "3",
-      title: "Culture",
-      content: `<h1>Culture of ${name}</h1><p>Add cultural information here...</p>`,
-    },
-  ];
-
-  const [sections, setSections] = useState<Section[]>(
-    countryName ? defaultSections(countryName) : []
-  );
+  const [stateData, setStateData] = useState<StateData | null>(null);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAddingSection, setIsAddingSection] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState("");
+  const [statesData, setStatesData] = useState<StatesData | null>(null);
 
-  if (!countryName) {
+  const countryName = statesData?.states.find(
+    (state) => state.name.toLowerCase().replace(/\s+/g, "-") === name
+  )?.name;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const statesResponse = await fetch("/data/states.json");
+        const statesJson: StatesData = await statesResponse.json();
+        setStatesData(statesJson);
+
+        if (!name) return;
+
+        const foundState = statesJson.states.find(
+          (s) => s.name.toLowerCase().replace(/\s+/g, "-") === name
+        );
+
+        if (!foundState) {
+          throw new Error(`Stát nenalezen: ${name}`);
+        }
+
+        setStateData(foundState);
+
+        const detailResponse = await fetch("/data/statesDetail.json");
+        const detailData: StateDetailData = await detailResponse.json();
+        const stateDetail = detailData.states[foundState.name];
+
+        setSections(stateDetail?.sections || []);
+      } catch (error) {
+        console.error("Nepodařilo se načíst data o státu:", error);
+        setError(
+          error instanceof Error ? error.message : "Nepodařilo se načíst data"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [name]);
+
+  const saveUpdatedSections = async (updatedSections: Section[]) => {
+    if (!countryName) return;
+
+    const response = await fetch("/data/statesDetail.json");
+    const detailData: StateDetailData = await response.json();
+
+    const updatedDetailData = {
+      ...detailData,
+      states: {
+        ...detailData.states,
+        [countryName]: {
+          sections: updatedSections,
+        },
+      },
+      lastUpdated: new Date().toISOString(),
+    };
+
+    const saveResponse = await fetch(
+      "http://localhost:3000/api/states/updateDetail",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedDetailData),
+      }
+    );
+
+    if (!saveResponse.ok) {
+      throw new Error("Nepodařilo se uložit sekce na server");
+    }
+
+    setSections(updatedSections);
+  };
+
+  const handleAddSection = async () => {
+    if (!newSectionTitle.trim() || !countryName) return;
+
+    const newSection = {
+      id: Date.now().toString(),
+      title: newSectionTitle,
+      content: `<h1>${newSectionTitle}</h1><p>Zde přidejte obsah...</p>`,
+    };
+
+    try {
+      const updatedSections = [...sections, newSection];
+      await saveUpdatedSections(updatedSections);
+      setNewSectionTitle("");
+      setIsAddingSection(false);
+    } catch (error) {
+      console.error("Nepodařilo se uložit novou sekci:", error);
+    }
+  };
+
+  const handleDeleteSection = async (id: string) => {
+    if (!countryName) return;
+
+    try {
+      const updatedSections = sections.filter((section) => section.id !== id);
+      await saveUpdatedSections(updatedSections);
+    } catch (error) {
+      console.error("Nepodařilo se smazat sekci:", error);
+    }
+  };
+
+  const handleSaveContent = async (sectionId: string, content: string) => {
+    if (!countryName) return;
+
+    try {
+      const updatedSections = sections.map((section) =>
+        section.id === sectionId ? { ...section, content } : section
+      );
+      await saveUpdatedSections(updatedSections);
+    } catch (error) {
+      console.error("Nepodařilo se uložit obsah:", error);
+    }
+  };
+
+  if (!stateData || !countryName) {
+    if (!loading) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Stát nenalezen
+            </h1>
+            <Link to="/" className="text-blue-600 hover:text-blue-800">
+              Zpět na mapu
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            State not found
-          </h1>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Map
-          </Link>
+          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-gray-600">Načítám data o státu...</p>
         </div>
       </div>
     );
   }
 
-  const countryInfo = stateData[countryName];
-  const countryAbbr = stateAbbreviations[countryName];
-  const politics = statePolitics[countryName];
-
-  const handleAddSection = () => {
-    if (newSectionTitle.trim()) {
-      setSections([
-        ...sections,
-        {
-          id: Date.now().toString(),
-          title: newSectionTitle,
-          content: `<h1>${newSectionTitle}</h1><p>Add content here...</p>`,
-        },
-      ]);
-      setNewSectionTitle("");
-      setIsAddingSection(false);
-    }
-  };
-
-  const handleDeleteSection = (id: string) => {
-    setSections(sections.filter((section) => section.id !== id));
-  };
-
-  const handleSaveContent = (sectionId: string, content: string) => {
-    setSections(
-      sections.map((section) =>
-        section.id === sectionId ? { ...section, content } : section
-      )
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center text-red-600">{error}</div>
+      </div>
     );
-    // Tady by byl API call pro uložení
-    console.log(`Saving section ${sectionId}:`, content);
-  };
+  }
+
+  const gdpRankText = stateData.gdp_rank ? ` (#${stateData.gdp_rank})` : "";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -110,165 +255,188 @@ const CountryDetail = () => {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Map
+          Zpět na mapu
         </Link>
 
-        {/* Hlavní content */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="relative h-48 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800">
-            <div className="absolute inset-0 bg-black/5" />
-            <div className="relative h-full flex items-center px-8">
-              <div className="flex items-center gap-6">
-                <div className="w-32 h-32 bg-white rounded-xl shadow-lg flex items-center justify-center overflow-hidden p-2">
-                  <img
-                    src={getStateFlag(countryName)}
-                    alt={`${countryName} flag`}
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      console.log(
-                        "Failed to load flag:",
-                        getStateFlag(countryName)
-                      );
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = "none";
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `
-                          <span class="text-5xl font-bold text-slate-700">
-                            ${countryAbbr}
-                          </span>
-                        `;
-                      }
-                    }}
-                  />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold text-white mb-2">
-                    {countryName}
-                  </h1>
-                  <div
-                    className="inline-block px-4 py-2 rounded-full text-sm font-semibold"
-                    style={{
-                      backgroundColor: getPoliticalColor(
-                        countryName,
-                        statePolitics
-                      ),
-                      color:
-                        ["solid-dem", "solid-rep"].includes(
-                          statePolitics[countryName]
-                        ) || politics === "independent-territory"
-                          ? "white"
-                          : "black",
-                    }}
-                  >
-                    {politics === "independent-territory"
-                      ? "Independent Territory"
-                      : politics
-                          .split("-")
-                          .map(
-                            (word) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+            <p className="mt-4 text-gray-600">Načítám data o státu...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 text-red-600">{error}</div>
+        ) : (
+          <>
+            {/* Hlavička státu */}
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+              <div className="relative h-48 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800">
+                <div className="absolute inset-0 bg-black/5" />
+                <div className="relative h-full flex items-center px-8">
+                  <div className="flex items-center gap-6">
+                    <div className="w-32 h-32 bg-white rounded-xl shadow-lg flex items-center justify-center overflow-hidden p-2">
+                      <img
+                        src={`/StateFlags/Flag_of_${stateData.name
+                          .split(" ")
+                          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                          .join("_")}.svg`}
+                        alt={`Vlajka státu ${stateData.name}`}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = `
+                              <span class="text-5xl font-bold text-slate-700">
+                                ${stateData.abbreviation}
+                              </span>
+                            `;
+                          }
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <h1 className="text-4xl font-bold text-white mb-2">
+                        {stateData.name}
+                      </h1>
+                      <div
+                        className="inline-block px-4 py-2 rounded-full text-sm font-semibold"
+                        style={{
+                          backgroundColor: getPoliticalColor(
+                            stateData.political_status
+                          ),
+                          color: ["solid-dem", "solid-rep"].includes(
+                            stateData.political_status
                           )
-                          .join(" ")}
+                            ? "white"
+                            : "black",
+                        }}
+                      >
+                        {translatePoliticalStatus(stateData.political_status)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid s daty o státu */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-500 mb-1">HDP</div>
+                    <div className="text-xl font-bold">
+                      {formatCurrency(stateData.gdp)}
+                      {gdpRankText}
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      Na obyvatele: {formatCurrency(stateData.gdp_per_capita)}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-500 mb-1">Populace</div>
+                    <div className="text-xl font-bold">
+                      {formatNumber(stateData.population)}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-500 mb-1">Rozloha</div>
+                    <div className="text-xl font-bold">
+                      {formatNumber(stateData.area)} km²
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-500 mb-1">Guvernér</div>
+                    <div className="text-xl font-bold">
+                      {stateData.governor_name}
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {translateParty(stateData.governor_party)}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-500 mb-1">
+                      Počet volitelů
+                    </div>
+                    <div className="text-xl font-bold">
+                      {stateData.electoral_votes}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Základní info */}
-          <div className="p-8">
-            <div className="grid grid-cols-2 gap-8">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Basic Information
-                </h2>
-                <dl className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <dt className="text-sm font-medium text-gray-500">
-                      Capital
-                    </dt>
-                    <dd className="mt-1 text-lg font-medium text-gray-900">
-                      {countryInfo.capital}
-                    </dd>
+            {/* Sekce obsahu */}
+            <div className="space-y-6">
+              {sections.map((section) => (
+                <section
+                  key={section.id}
+                  className="bg-white rounded-lg shadow-lg overflow-hidden"
+                >
+                  <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
+                    <h2 className="text-xl font-bold text-gray-900">
+                      {section.title}
+                    </h2>
+                    {sections.length > 1 && (
+                      <button
+                        onClick={() => handleDeleteSection(section.id)}
+                        className="text-gray-500 hover:text-red-500"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <dt className="text-sm font-medium text-gray-500">
-                      Population
-                    </dt>
-                    <dd className="mt-1 text-lg font-medium text-gray-900">
-                      {new Intl.NumberFormat("en-US").format(
-                        countryInfo.population
-                      )}
-                    </dd>
+                  <div className="p-6">
+                    <StateEditor
+                      initialContent={section.content}
+                      onSave={(content) =>
+                        handleSaveContent(section.id, content)
+                      }
+                    />
                   </div>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
+                </section>
+              ))}
 
-        {/* Sekce s editory */}
-        <div className="mt-8 space-y-8">
-          {sections.map((section) => (
-            <section key={section.id} className="relative">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {section.title}
-                </h2>
-                {sections.length > 1 && (
+              {isAddingSection ? (
+                <div className="flex items-center gap-4 bg-white rounded-lg shadow-lg p-4">
+                  <input
+                    type="text"
+                    value={newSectionTitle}
+                    onChange={(e) => setNewSectionTitle(e.target.value)}
+                    placeholder="Název sekce..."
+                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
                   <button
-                    onClick={() => handleDeleteSection(section.id)}
-                    className="text-gray-500 hover:text-red-500"
+                    onClick={handleAddSection}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  >
+                    Přidat
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAddingSection(false);
+                      setNewSectionTitle("");
+                    }}
+                    className="text-gray-500 hover:text-gray-700"
                   >
                     <X className="w-5 h-5" />
                   </button>
-                )}
-              </div>
-              <StateEditor
-                initialContent={section.content}
-                onSave={(content) => handleSaveContent(section.id, content)}
-              />
-            </section>
-          ))}
-
-          {/* Přidání nové sekce */}
-          {isAddingSection ? (
-            <div className="flex items-center gap-4">
-              <input
-                type="text"
-                value={newSectionTitle}
-                onChange={(e) => setNewSectionTitle(e.target.value)}
-                placeholder="Section title..."
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                onKeyPress={(e) => e.key === "Enter" && handleAddSection()}
-              />
-              <button
-                onClick={handleAddSection}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => {
-                  setIsAddingSection(false);
-                  setNewSectionTitle("");
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsAddingSection(true)}
+                  className="flex items-center gap-2 text-blue-500 hover:text-blue-700"
+                >
+                  <Plus className="w-5 h-5" />
+                  Přidat novou sekci
+                </button>
+              )}
             </div>
-          ) : (
-            <button
-              onClick={() => setIsAddingSection(true)}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900"
-            >
-              <Plus className="w-5 h-5" />
-              Add New Section
-            </button>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

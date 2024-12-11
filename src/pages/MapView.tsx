@@ -1,4 +1,3 @@
-// src/pages/MapView.tsx
 import { useState, useMemo, useEffect } from "react";
 import {
   MapContainer,
@@ -19,10 +18,26 @@ import {
   MIN_ZOOM,
   MAX_ZOOM,
   USA_BOUNDS,
+  PoliticalCategory,
 } from "../types/map";
 import { getPoliticalColor } from "../utils/mapUtils";
-import { stateAbbreviations, statePolitics } from "../constants/mapData";
 import * as L from "leaflet";
+
+interface StatesData {
+  lastUpdated: string;
+  states: Array<{
+    name: string;
+    abbreviation: string;
+    political_status: PoliticalCategory;
+    population: number;
+    area: number;
+    gdp: number;
+    gdp_per_capita: number;
+    governor_name: string;
+    governor_party: string;
+    electoral_votes: number;
+  }>;
+}
 
 const MapClickHandler = ({ onMapClick }: { onMapClick: () => void }) => {
   const map = useMap();
@@ -70,8 +85,32 @@ const MapView = () => {
   const [selectedState, setSelectedState] = useState<StateFeature | null>(null);
   const [hoveredState, setHoveredState] = useState<StateFeature | null>(null);
   const [currentZoom, setCurrentZoom] = useState(3);
+  const [statesData, setStatesData] = useState<StatesData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const shouldShowInsets = currentZoom <= 5;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/data/states.json");
+        if (!response.ok) throw new Error("Nepodařilo se načíst data států");
+        const data = await response.json();
+        setStatesData(data);
+      } catch (error) {
+        console.error("Nepodařilo se načíst data států:", error);
+        setError(
+          error instanceof Error ? error.message : "Nepodařilo se načíst data"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleMapClick = () => {
     setSelectedState(null);
@@ -94,22 +133,31 @@ const MapView = () => {
       const isSelected = selectedState?.properties.name === properties.name;
       const isHovered = hoveredState?.properties.name === properties.name;
 
+      const state = statesData?.states.find((s) => s.name === properties.name);
+      const politicalColor = state
+        ? getPoliticalColor(state.political_status)
+        : "#CCCCCC";
+
       return {
         weight: isSelected || isHovered ? 3 : 1,
         color: "#666",
         opacity: 1,
-        fillColor: getPoliticalColor(properties.name, statePolitics),
+        fillColor: politicalColor,
         fillOpacity: isSelected ? 0.9 : isHovered ? 0.8 : 0.6,
         dashArray: isSelected ? "" : "3",
       };
     },
-    [selectedState, hoveredState]
+    [selectedState, hoveredState, statesData]
   );
+
+  const getStateAbbreviation = (name: string) => {
+    const state = statesData?.states.find((s) => s.name === name);
+    return state?.abbreviation || name;
+  };
 
   const onEachFeature = (feature: StateFeature, layer: L.Layer) => {
     if (feature.properties.name) {
-      const abbr =
-        stateAbbreviations[feature.properties.name] || feature.properties.name;
+      const abbr = getStateAbbreviation(feature.properties.name);
 
       layer.bindTooltip(abbr, {
         permanent: true,
@@ -128,6 +176,31 @@ const MapView = () => {
       });
     }
   };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Načítám data mapy...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
+          <div className="text-center text-red-600">
+            <p>Chyba při načítání dat mapy: {error}</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -155,6 +228,7 @@ const MapView = () => {
               bounds={USA_BOUNDS}
               className="map-tiles"
             />
+
             <GeoJSON
               data={usStatesData}
               style={style}
@@ -168,8 +242,8 @@ const MapView = () => {
                     stateName="Alaska"
                     center={[67.2008, -145.4937]}
                     zoom={2}
-                    statesData={usStatesData}
-                    statePolitics={statePolitics}
+                    geoData={usStatesData}
+                    statesInfo={statesData!}
                     simplified={true}
                     onStateSelect={setSelectedState}
                   />
@@ -180,20 +254,8 @@ const MapView = () => {
                     stateName="Hawaii"
                     center={[20.7967, -157.3319]}
                     zoom={5}
-                    statesData={usStatesData}
-                    statePolitics={statePolitics}
-                    simplified={true}
-                    onStateSelect={setSelectedState}
-                  />
-                </div>
-
-                <div className="w-36 transition-opacity duration-300">
-                  <StateInset
-                    stateName="Puerto Rico"
-                    center={[18.2208, -66.3901]}
-                    zoom={7}
-                    statesData={usStatesData}
-                    statePolitics={statePolitics}
+                    geoData={usStatesData}
+                    statesInfo={statesData!}
                     simplified={true}
                     onStateSelect={setSelectedState}
                   />
@@ -206,12 +268,9 @@ const MapView = () => {
           </MapContainer>
         </div>
 
-        {/* Sidebar */}
+        {/* Postranní panel */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          <StateInfo
-            selectedState={selectedState}
-            statePolitics={statePolitics}
-          />
+          <StateInfo selectedState={selectedState} statesData={statesData} />
           <MapLegend />
         </div>
       </div>
