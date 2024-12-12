@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, X } from "lucide-react";
 import { getPoliticalColor } from "../utils/mapUtils";
 import { PoliticalCategory } from "../types/map";
 import { StateEditor } from "../components/editor/StateEditor";
+import { fetchWithRetry } from "../utils/api";
 
 interface Section {
   id: string;
@@ -115,8 +116,8 @@ const CountryDetail = () => {
 
         setStateData(foundState);
 
-        // Načteme statesDetail.json z BE
-        const detailResponse = await fetch(
+        // Načteme statesDetail.json z BE s retry logikou
+        const detailResponse = await fetchWithRetry(
           `${import.meta.env.VITE_API_URL}/api/states/statesDetail`
         );
         const detailData: StateDetailData = await detailResponse.json();
@@ -126,7 +127,9 @@ const CountryDetail = () => {
       } catch (error) {
         console.error("Nepodařilo se načíst data o státu:", error);
         setError(
-          error instanceof Error ? error.message : "Nepodařilo se načíst data"
+          error instanceof Error
+            ? error.message
+            : "Server je momentálně nedostupný, zkuste to prosím za chvíli"
         );
       } finally {
         setLoading(false);
@@ -140,8 +143,8 @@ const CountryDetail = () => {
     if (!countryName) return;
 
     try {
-      // Načteme aktuální data z BE
-      const detailResponse = await fetch(
+      // Načteme aktuální data z BE s retry logikou
+      const detailResponse = await fetchWithRetry(
         `${import.meta.env.VITE_API_URL}/api/states/statesDetail`
       );
       const detailData: StateDetailData = await detailResponse.json();
@@ -158,8 +161,8 @@ const CountryDetail = () => {
         lastUpdated: new Date().toISOString(),
       };
 
-      // Pošleme aktualizaci na BE
-      const saveResponse = await fetch(
+      // Pošleme aktualizaci na BE s retry logikou
+      const saveResponse = await fetchWithRetry(
         `${import.meta.env.VITE_API_URL}/api/states/updateDetail`,
         {
           method: "POST",
@@ -169,13 +172,17 @@ const CountryDetail = () => {
       );
 
       if (!saveResponse.ok) {
-        throw new Error("Nepodařilo se uložit sekce na server");
+        throw new Error(
+          "Server je momentálně nedostupný, zkuste to prosím za chvíli"
+        );
       }
 
       setSections(updatedSections);
     } catch (error) {
       console.error("Nepodařilo se uložit sekce:", error);
-      throw error;
+      throw new Error(
+        "Server je momentálně nedostupný, zkuste to prosím za chvíli"
+      );
     }
   };
 
