@@ -98,6 +98,7 @@ const CountryDetail = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Načteme states.json normálně
         const statesResponse = await fetch("/data/states.json");
         const statesJson: StatesData = await statesResponse.json();
         setStatesData(statesJson);
@@ -114,7 +115,10 @@ const CountryDetail = () => {
 
         setStateData(foundState);
 
-        const detailResponse = await fetch("/data/statesDetail.json");
+        // Načteme statesDetail.json z BE
+        const detailResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/states/statesDetail`
+        );
         const detailData: StateDetailData = await detailResponse.json();
         const stateDetail = detailData.states[foundState.name];
 
@@ -135,34 +139,44 @@ const CountryDetail = () => {
   const saveUpdatedSections = async (updatedSections: Section[]) => {
     if (!countryName) return;
 
-    const response = await fetch("/data/statesDetail.json");
-    const detailData: StateDetailData = await response.json();
+    try {
+      // Načteme aktuální data z BE
+      const detailResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/states/statesDetail`
+      );
+      const detailData: StateDetailData = await detailResponse.json();
 
-    const updatedDetailData = {
-      ...detailData,
-      states: {
-        ...detailData.states,
-        [countryName]: {
-          sections: updatedSections,
+      // Připravíme aktualizovaná data
+      const updatedDetailData = {
+        ...detailData,
+        states: {
+          ...detailData.states,
+          [countryName]: {
+            sections: updatedSections,
+          },
         },
-      },
-      lastUpdated: new Date().toISOString(),
-    };
+        lastUpdated: new Date().toISOString(),
+      };
 
-    const saveResponse = await fetch(
-      "http://localhost:3000/api/states/updateDetail",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedDetailData),
+      // Pošleme aktualizaci na BE
+      const saveResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/states/updateDetail`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedDetailData),
+        }
+      );
+
+      if (!saveResponse.ok) {
+        throw new Error("Nepodařilo se uložit sekce na server");
       }
-    );
 
-    if (!saveResponse.ok) {
-      throw new Error("Nepodařilo se uložit sekce na server");
+      setSections(updatedSections);
+    } catch (error) {
+      console.error("Nepodařilo se uložit sekce:", error);
+      throw error;
     }
-
-    setSections(updatedSections);
   };
 
   const handleAddSection = async () => {
