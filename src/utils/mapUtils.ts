@@ -24,7 +24,7 @@ export const getPoliticalColor = (
 export const legendItems = [
   { label: "Silně demokratický", color: "#0000FF" }, // Solid Democratic
   { label: "Mírně demokratický", color: "#99CCFF" }, // Lean Democratic
-  { label: "Kolísavý stát", color: "#FFD700" }, // Swing State
+  { label: "Swing", color: "#FFD700" }, // Swing State
   { label: "Mírně republikánský", color: "#FFB6C1" }, // Lean Republican
   { label: "Silně republikánský", color: "#FF0000" }, // Solid Republican
 ];
